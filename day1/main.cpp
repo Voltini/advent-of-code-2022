@@ -34,6 +34,11 @@ int main() {
     
     std::sort(sum.begin(), sum.end(), std::greater<int>());
 
+    /*
+    # PART 1 :
+    std::cout << sum[0] << std::endl;
+    */
+
     std::cout << sum[0] + sum[1] + sum[2] << std::endl;
 
     return 0;
