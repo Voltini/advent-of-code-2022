@@ -40,15 +40,25 @@ int main() {
             }
         for (size_t i = 0; i < steps; i++)
         {
-            std::pair<int, int> old_pos[10];
-            std::copy(std::begin(rope), std::end(rope), std::begin(old_pos));
             rope[0].first += inc_x;
             rope[0].second += inc_y;
             for (size_t j = 1; j < 10; j++)
             {       
                 if (distance(rope[j - 1].first, rope[j - 1].second, rope[j].first, rope[j].second) >= 2)
                 {
-                    rope[j] = old_pos[j-1];
+                    std::pair<int, int> direction = std::pair<int, int>(rope[j - 1].first - rope[j].first, rope[j - 1].second - rope[j].second);
+                    switch (abs(direction.first) + abs(direction.second))
+                    {
+                    case 3:
+                        rope[j].first += direction.first / abs(direction.first);
+                        rope[j].second += direction.second / abs(direction.second);
+                        break;
+                    
+                    default:
+                        rope[j].first += direction.first != 0 ? direction.first / 2 : 0;
+                        rope[j].second += direction.second != 0 ? direction.second / 2: 0;
+                        break;
+                    }
                     if(j == 9) visited_coords.insert(rope[j]);
                 }
             }
