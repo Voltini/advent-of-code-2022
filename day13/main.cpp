@@ -13,6 +13,8 @@ int min(int a, int b)
     return a > b ? b : a;
 }
 
+enum size { SMALLER, EQUAL, GREATER };
+
 typedef struct list {
     std::vector<int> elements;
     std::map<int, std::shared_ptr<list>> lists;
@@ -59,37 +61,45 @@ std::shared_ptr<list> list_from_line(std::string line)
     return current;
 }
 
-bool compare_lists(std::shared_ptr<list> l1, std::shared_ptr<list> l2)
+size compare_lists(std::shared_ptr<list> l1, std::shared_ptr<list> l2, int index1 = 0, int index2 = 0)
 {
-    for (size_t i = 0; i < min(l1->elements.size(), l2->elements.size()); i++)
+    for (size_t i = 0; i < min(l1->elements.size() - index1, l2->elements.size() - index2); i++)
     {
-        if (l1->elements[i] != -1 && l2->elements[i] != -1)
+        if (l1->elements[i + index1] != -1 && l2->elements[i + index2] != -1)
         {
-            if (l1->elements[i] != l2->elements[i])
+            if (l1->elements[i + index1] != l2->elements[i + index2])
             {
-                return l1->elements[i] < l2->elements[i];
+                return l1->elements[i + index1] < l2->elements[i + index2] ? SMALLER : GREATER;
             }
         }
-        else if(l1->elements[i] == -1 && l2->elements[i] == -1)
+        else if (l1->elements[i + index1] == -1 && l2->elements[i + index2] == -1)
         {
-            if(l1->lists[i]->elements.empty()) return false;
-            if(l2->lists[i]->elements.empty()) return true;
-            std::cout << l1->lists[i]->elements[0] << " " <<  l2->lists[i]->elements[0] << "\n";
-            return compare_lists(l1->lists[i], l2->lists[i]);
+            if (l1->lists[i + index1]->elements.empty() && !l2->lists[i + index2]->elements.empty()) return SMALLER;
+            if (!l1->lists[i + index1]->elements.empty() && l2->lists[i + index2]->elements.empty()) return GREATER;
+            if (l1->lists[i + index1]->elements.empty() && l2->lists[i + index2]->elements.empty()) return EQUAL;
+            size below = compare_lists(l1->lists[i], l2->lists[i], index1, index2);
+            if (below != EQUAL)
+            {
+                return below;
+            }
         }
         else
         {
-            if (l1->elements[i] == -1)
+            if (l1->elements[i + index1] == -1)
             {
-                return compare_lists(l1->lists[i], l2);
+                return compare_lists(l1->lists[i], l2, 0, i);
             }
             else
             {
-                return compare_lists(l1, l2->lists[i]);
+                return compare_lists(l1, l2->lists[i], i, 0);
             }
         }
+        if (i >= l1->elements.size() - 1 && l1->parent != nullptr && l1->parent->parent == nullptr)
+        {
+            return SMALLER;
+        }
     }
-    return l1->elements.size() < l2->elements.size();
+    return EQUAL;
 }
 
 int main() {
@@ -107,10 +117,15 @@ int main() {
         }
         else
         {
-            score += index * compare_lists(l1, l2);
-            int a = 0;
+            size result = compare_lists(l1, l2);
+            score += index * (result == SMALLER ? 1 : 0);
+            if (result == SMALLER)
+            {
+                std::cout << index << " ";
+            }
         }
     }
+    std::cout << "\n";
     std::cout << score << std::endl;
     return 0;
 }
