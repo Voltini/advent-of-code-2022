@@ -61,23 +61,31 @@ std::shared_ptr<list> list_from_line(std::string line)
     return current;
 }
 
-size compare_lists(std::shared_ptr<list> l1, std::shared_ptr<list> l2, int index1 = 0, int index2 = 0)
+size compare_lists(std::shared_ptr<list> l1, std::shared_ptr<list> l2)
 {
-    for (size_t i = 0; i < min(l1->elements.size() - index1, l2->elements.size() - index2); i++)
+    if (l1->elements.empty() && !l2->elements.empty())
     {
-        if (l1->elements[i + index1] != -1 && l2->elements[i + index2] != -1)
+        return SMALLER;
+    }
+    if (l2->elements.empty() && !l1->elements.empty())
+    {
+        return GREATER;
+    }
+    for (size_t i = 0; i < min(l1->elements.size(), l2->elements.size()); i++)
+    {
+        if (l1->elements[i] != -1 && l2->elements[i] != -1)
         {
-            if (l1->elements[i + index1] != l2->elements[i + index2])
+            if (l1->elements[i] != l2->elements[i])
             {
-                return l1->elements[i + index1] < l2->elements[i + index2] ? SMALLER : GREATER;
+                return l1->elements[i] < l2->elements[i] ? SMALLER : GREATER;
             }
         }
-        else if (l1->elements[i + index1] == -1 && l2->elements[i + index2] == -1)
+        else if (l1->elements[i] == -1 && l2->elements[i] == -1)
         {
-            if (l1->lists[i + index1]->elements.empty() && !l2->lists[i + index2]->elements.empty()) return SMALLER;
-            if (!l1->lists[i + index1]->elements.empty() && l2->lists[i + index2]->elements.empty()) return GREATER;
-            if (l1->lists[i + index1]->elements.empty() && l2->lists[i + index2]->elements.empty()) return EQUAL;
-            size below = compare_lists(l1->lists[i], l2->lists[i], index1, index2);
+            //if (l1->lists[i]->elements.empty() && !l2->lists[i]->elements.empty()) return SMALLER;
+            //if (!l1->lists[i]->elements.empty() && l2->lists[i]->elements.empty()) return GREATER;
+            //if (l1->lists[i]->elements.empty() && l2->lists[i]->elements.empty()) return EQUAL;
+            size below = compare_lists(l1->lists[i], l2->lists[i]);
             if (below != EQUAL)
             {
                 return below;
@@ -85,18 +93,31 @@ size compare_lists(std::shared_ptr<list> l1, std::shared_ptr<list> l2, int index
         }
         else
         {
-            if (l1->elements[i + index1] == -1)
+            std::shared_ptr<list> list_1_elem = std::make_shared<list>();
+            if (l1->elements[i] == -1)
             {
-                return compare_lists(l1->lists[i], l2, 0, i);
+                list_1_elem->elements.push_back(l2->elements[i]);
+                list_1_elem->parent = l1;
+                return compare_lists(l1->lists[i], list_1_elem);
             }
             else
             {
-                return compare_lists(l1, l2->lists[i], i, 0);
+                list_1_elem->elements.push_back(l1->elements[i]);
+                list_1_elem->parent = l1;
+                size below = compare_lists(list_1_elem, l2->lists[i]);
+                if (below != EQUAL)
+                {
+                    return below;
+                }
             }
         }
-        if (i >= l1->elements.size() - 1 && l1->parent != nullptr && l1->parent->parent == nullptr)
+        if (i >= l1->elements.size() - 1 && i < l2->elements.size() - 1)
         {
             return SMALLER;
+        }
+        else if (i >= l2->elements.size() - 1 && i < l1->elements.size() - 1)
+        {
+            return GREATER;
         }
     }
     return EQUAL;
@@ -104,27 +125,67 @@ size compare_lists(std::shared_ptr<list> l1, std::shared_ptr<list> l2, int index
 
 int main() {
     std::ifstream file("input.txt");
-    int score(0), index(0);
-    std::shared_ptr<list> l1 = std::make_shared<list>(), l2 = std::make_shared<list>();
+    int score(1), index(0);
+    std::shared_ptr<list> l1 = std::make_shared<list>();
+    std::shared_ptr<list> l2 = std::make_shared<list>();
+    std::vector<std::shared_ptr<list>> all_lists;
+    std::vector<std::shared_ptr<list>> sorted_lists;
+
     for (std::string line; std::getline(file, line);)
     {
-        if (!line.empty())
+        // if (!line.empty())
+        // {
+        //     l1 = list_from_line(line);
+        //     std::getline(file, line);
+        //     l2 = list_from_line(line);
+        //     index++;
+        // }
+        // else
+        // {
+        //     if (index == 74)
+        //     {
+        //         int a = 0;
+        //     }
+
+        //     size result = compare_lists(l1, l2);
+        //     score += index * (result == SMALLER ? 1 : 0);
+        //     if (result == SMALLER)
+        //     {
+        //         std::cout << index << " ";
+        //     }
+        // }
+        all_lists.push_back(list_from_line(line));
+    }
+
+    while (!all_lists.empty())
+    {
+        std::shared_ptr<list> min = all_lists[0];
+        int min_i = 0;
+        for (size_t j = 1; j < all_lists.size(); j++)
         {
-            l1 = list_from_line(line);
-            std::getline(file, line);
-            l2 = list_from_line(line);
-            index++;
-        }
-        else
-        {
-            size result = compare_lists(l1, l2);
-            score += index * (result == SMALLER ? 1 : 0);
-            if (result == SMALLER)
+            if (compare_lists(all_lists[j], min) != GREATER)
             {
-                std::cout << index << " ";
+                min = all_lists[j];
+                min_i = j;
             }
         }
+        all_lists.erase(all_lists.begin() + min_i);
+        sorted_lists.push_back(min);
     }
+    for (size_t i = 0; i < sorted_lists.size(); i++)
+    {
+        if (sorted_lists[i]->lists.size() == 1 &&
+            sorted_lists[i]->lists[0]->lists.size() == 1 &&
+            sorted_lists[i]->lists[0]->lists.find(0) != sorted_lists[i]->lists[0]->lists.end() &&
+            sorted_lists[i]->lists[0]->lists[0]->elements.size() == 1 &&
+            (sorted_lists[i]->lists[0]->lists[0]->elements[0] == 2 || sorted_lists[i]->lists[0]->lists[0]->elements[0] == 6))
+        {
+            score *= (i + 1);
+        }
+
+    }
+
+
     std::cout << "\n";
     std::cout << score << std::endl;
     return 0;
